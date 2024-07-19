@@ -1,0 +1,4 @@
+.venv/
+env/
+dags/__pycache__/
+pipelines/__pycache__/

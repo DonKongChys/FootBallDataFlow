@@ -1,0 +1,78 @@
+version: "3.8"
+services:
+  webserver:
+    image: apache/airflow:2.6.0-python3.9
+    command: webserver
+    entrypoint: [ "/opt/airflow/script/entrypoint.sh" ]
+    depends_on:
+      - postgres
+    environment:
+      # Cấu hình kết nối database
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      # Load example DAGs (True/False)
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      # Cấu hình Executor (SequentialExecutor, LocalExecutor, CeleryExecutor, ...)
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__WEBSERVER_BASE_URL=http://localhost:8080
+      - AIRFLOW__WEBSERVER__SECRET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+      - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./data:/opt/airflow/data
+      - ./pipelines:/opt/airflow/pipelines
+      # - ./gusml.egg-info:/opt/airflow/gusml.egg-info
+      # - ./constants.py:/opt/airflow/constants.py
+      # - ./utils:/opt/airflow/utils
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 1m30s
+    networks:
+      - football
+
+  postgres:
+    image: postgres:14.0
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - football
+
+  sheduler:
+    image: apache/airflow:2.6.0-python3.9
+    depends_on:
+      webserver:
+        condition: service_healthy
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./data:/opt/airflow/data
+      - ./pipelines:/opt/airflow/pipelines
+      # - ./gusml.egg-info:/opt/airflow/gusml.egg-info
+
+    environment:
+      - LOAD_EX=n
+      - Executor=Sequential
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__WEBSERVER_BASE_URL=http://localhost:8080
+      - AIRFLOW__WEBSERVER__SECRET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    command: bash -c "pip install --no-cache-dir -r ./requirements.txt && airflow db upgrade && airflow scheduler"
+    networks:
+      - football
+
+networks:
+  football:
