@@ -10,7 +10,6 @@ This Python project utilizes Apache Airflow to scrape data from Wikipedia, clean
 - PostgreSQL
 - Apache Airflow
 # Work flow
-- Extract data from Wikipedia with Apache Airflow
-- Data Cleaning Strategy
-- Creating and Setting up Azure Architecture
-- Perform Data Integration with Azure Data Flow
+- Extract and clean data from Wikipedia with python, Apache Airflow and process them into lake (Azure data gen 2)
+- Using the Azure Synapse to query data
+- Building dashboard with Tableau
