@@ -1,0 +1,50 @@
+-- top 5 stadiums by capacity
+select top 10 rank, stadium, capacity
+from stadiums
+ORDER BY capacity DESC;
+
+--avg capacity of the stadiums by regions
+select region, AVG(capacity) avg_capacity
+FROM stadiums
+GROUP by region
+order BY avg_capacity desc;
+
+-- count the number of stadiums in each country
+select country, count(*) stadium_count
+from stadiums
+GROUP BY country
+ORDER BY stadium_count desc;
+
+--stadiums ranking with reach region
+select rank, region, stadium, region_rank
+from (
+    select rank, region, stadium,
+        rank() over(PARTITION BY region ORDER BY capacity DESC) as region_rank
+    from stadiums
+) as rank_staidums
+where region_rank <= 3;
+
+--stadiums with capacity above the avg
+select stadium, t2.region, capacity, avg_capacity
+from stadiums, (select region, avg(capacity) avg_capacity from stadiums group by region) t2
+where stadiums.region = t2.region
+and capacity > avg_capacity
+
+--stadiums with closes capacoity to regional median
+with MedianCTE as (
+    select region, PERCENTILE_CONT(0.5) within group (order by capacity) over (partition by region) as median_capacity
+    from stadiums
+)
+select rank, stadium, region, capacity,ranked_stadiums.median_capacity ,ranked_stadiums.median_rank
+from (
+    select s.rank, s.stadium, s.region, s.capacity, m.median_capacity,
+    ROW_NUMBER() over (PARTITION BY s.region ORDER BY ABS(s.capacity - m.median_capacity)) as median_rank
+    from stadiums s JOIN MedianCTE m on s.region =m.region
+) ranked_stadiums
+where median_rank = 1;
+
+
+
+
+
+
